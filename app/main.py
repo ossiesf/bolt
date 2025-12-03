@@ -18,5 +18,5 @@ async def get_url(code: str):
     return get_original_url(code)
 
 @app.post('/shorten')
-async def shorten_url(original_url: str):
+async def shorten_request(original_url: str):
     return shorten_url(original_url)
