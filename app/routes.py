@@ -6,7 +6,7 @@ class Routes:
         self._mappings[short_code] = url
 
     def get(self, short_code: str):
-        return self._mappings[short_code]
+        return self._mappings.get(short_code)
 
     def delete(self, short_code: str):
         del self._mappings[short_code]
