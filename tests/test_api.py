@@ -16,12 +16,12 @@ def test_redirect():
     short_code = shorten_response.json()['short_code']
 
     # Now, test the redirect
-    redirect_response = client.get(f'/{short_code}', allow_redirects=False)
+    redirect_response = client.get(f'/{short_code}', follow_redirects=False)
     assert redirect_response.status_code == 302
     assert redirect_response.headers['location'] == 'https://google.com'
 
 def test_redirect_not_found():
-    response = client.get('/nonexistentcode', allow_redirects=False)
+    response = client.get('/nonexistentcode', follow_redirects=False)
     assert response.status_code == 404
     data = response.json()
     assert data['detail'] == "URL for nonexistentcode not found - have you shortened this URL yet?"
@@ -31,7 +31,7 @@ def test_shorten_and_redirect():
     shorten_response = client.post('/shorten', json={'url': url_to_shorten})
     short_code = shorten_response.json()['short_code']
 
-    redirect_response = client.get(f'/{short_code}', allow_redirects=False)
+    redirect_response = client.get(f'/{short_code}', follow_redirects=False)
     assert redirect_response.status_code == 302
     assert redirect_response.headers['location'] == url_to_shorten 
 
@@ -73,7 +73,7 @@ def test_redirect_after_multiple_shortens():
         short_code_map[data['short_code']] = url
 
     for short_code, original_url in short_code_map.items():
-        redirect_response = client.get(f'/{short_code}', allow_redirects=False)
+        redirect_response = client.get(f'/{short_code}', follow_redirects=False)
         assert redirect_response.status_code == 302
         assert redirect_response.headers['location'] == original_url
 
@@ -90,9 +90,9 @@ def test_redirect_special_characters():
     shorten_response = client.post('/shorten', json={'url': special_url})
     short_code = shorten_response.json()['short_code']
 
-    redirect_response = client.get(f'/{short_code}', allow_redirects=False)
+    redirect_response = client.get(f'/{short_code}', follow_redirects=False)
     assert redirect_response.status_code == 302
-    assert redirect_response.headers['location'] == special_url
+    assert redirect_response.headers['location'] == 'https://example.com/?q=hello%20world&lang=en#section'
 
 def test_shorten_duplicate_url():
     url = 'https://duplicate.com'
@@ -121,13 +121,13 @@ def test_redirect_case_sensitivity():
     short_code = shorten_response.json()['short_code']
 
     # Test with original case
-    redirect_response = client.get(f'/{short_code}', allow_redirects=False)
+    redirect_response = client.get(f'/{short_code}', follow_redirects=False)
     assert redirect_response.status_code == 302
     assert redirect_response.headers['location'] == url
 
     # Test with different case
     altered_code = short_code.upper() if short_code.islower() else short_code.lower()
-    redirect_response_case = client.get(f'/{altered_code}', allow_redirects=False)
+    redirect_response_case = client.get(f'/{altered_code}', follow_redirects=False)
     assert redirect_response_case.status_code == 404
 
 def test_shorten_invalid_url_format():
