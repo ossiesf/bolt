@@ -1,3 +1,4 @@
+![Tests](https://github.com/ossiesf/bolt/actions/workflows/tests.yml/badge.svg)
 
 # bolt
 Fast, containerized load testing platform
