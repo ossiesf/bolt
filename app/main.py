@@ -9,6 +9,11 @@ from app.models import ShortenRequest, ShortenResponse
 routes = Routes()
 app = FastAPI()
 
+# Routes are in order, if health is after /{short_code} it will never be reached
+@app.get("/health")
+def health_check():
+    return {"status": "healthy"}
+
 @app.get('/{short_code}')
 async def redirect(short_code: str):
     try:
