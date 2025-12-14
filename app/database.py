@@ -5,7 +5,10 @@ from datetime import datetime
 import os
 
 # Get database URL from environment variable
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://user:password@db:5432/bolt")
+if os.getenv('TESTING'):
+    DATABASE_URL = "sqlite:///./test.db"
+else:
+    DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://user:password@db:5432/bolt")
 
 # Create SQLAlchemy engine to talk to database
 engine = create_engine(DATABASE_URL)
