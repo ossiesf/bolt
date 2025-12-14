@@ -24,7 +24,7 @@ def test_redirect_not_found():
     response = client.get('/nonexistentcode', follow_redirects=False)
     assert response.status_code == 404
     data = response.json()
-    assert data['detail'] == "URL for nonexistentcode not found - have you shortened this URL yet?"
+    assert data['detail'] == "Mapping not found - have you shortened this URL yet?"
 
 def test_shorten_and_redirect():
     url_to_shorten = 'https://example.com'
