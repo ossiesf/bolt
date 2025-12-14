@@ -1,16 +1,52 @@
+from app.database import SessionLocal, URLMapping
+
 class Routes:
-    def __init__(self):
-        self._mappings = {}
 
     def save(self, short_code: str, url: str):
-        self._mappings[short_code] = url
+        session = SessionLocal()
+        try:
+            url_mapping = URLMapping(short_code=short_code, original_url=url)
+            session.add(url_mapping)
+            session.commit()
+        except Exception as e:
+            session.rollback()
+            raise e
+        finally:
+            session.close()
 
     def get(self, short_code: str):
-        return self._mappings.get(short_code)
+        session = SessionLocal()
+        try:
+            mapping = session.query(URLMapping).filter(URLMapping.short_code == short_code).first()
+            return mapping.original_url if mapping else None
+        except Exception as e:
+            session.rollback()
+            raise e
+        finally:
+            session.close()
 
     def delete(self, short_code: str):
-        del self._mappings[short_code]
-        return True if short_code not in self._mappings else False
+        session = SessionLocal()
+        try:
+            mapping = session.query(URLMapping).filter(URLMapping.short_code == short_code).first()
+            if mapping:
+                session.delete(mapping)
+                session.commit()
+                return True
+            return False
+        except Exception as e:
+            session.rollback()
+            raise e
+        finally:
+            session.close()
 
     def exists(self, short_code: str):
-        return True if short_code in self._mappings else False
+        session = SessionLocal()
+        try:
+            mapping = session.query(URLMapping).filter(short_code == short_code).first()
+            return mapping is not None
+        except Exception as e:
+            session.rollback()
+            raise e
+        finally:
+            session.close()
