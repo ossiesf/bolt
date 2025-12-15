@@ -6,8 +6,8 @@ from app.routes import Routes
 from app.shortener import create_short_code
 from app.models import ShortenRequest, ShortenResponse
 
-import subprocess
 import csv
+import asyncio
 
 from pydantic import BaseModel
 
@@ -36,29 +36,29 @@ class LoadTestRequest(BaseModel):
     users: int = 10
     duration: int = 30
 
-# Run an actual load test
-@app.post("/api/run-load-test") # This is the actual endpoint to run the tests via web
+@app.post("/api/run-load-test")
 async def run_load_test(request: LoadTestRequest):
     try:
-        result = subprocess.run(
-    [
-        "locust",
-        "-f", "/app/locustfile.py",  # Absolute path
-        "--headless",
-        "--users", str(request.users),
-        "--spawn-rate", str(request.users // 2 if request.users > 2 else 1),
-        "--run-time", f"{request.duration}s",
-        "--host", "http://localhost:8000",
-        "--csv", "/app/locust_stats",
-        "--html", "/app/locust_report.html"
-    ],
-    capture_output=True,
-    text=True,
-    timeout=request.duration + 30
-    # Remove cwd="/app" - not needed with absolute paths
-)
+        # Use asyncio subprocess - non-blocking
+        process = await asyncio.create_subprocess_exec(
+            "locust",
+            "-f", "/app/locustfile.py",
+            "--headless",
+            "--users", str(request.users),
+            "--spawn-rate", str(request.users // 2 if request.users > 2 else 1),
+            "--run-time", f"{request.duration}s",
+            "--host", "http://127.0.0.1:8000",
+            "--csv", "/app/locust_stats",
+            "--html", "/app/locust_report.html",
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE
+        )
+        
+        # This is non-blocking in async
+        stdout, stderr = await process.communicate()
+        await asyncio.sleep(2)
 
-        # Parse the CSV file
+        # Parse CSV...
         stats = {}
         csv_error = None
         try:
@@ -66,7 +66,6 @@ async def run_load_test(request: LoadTestRequest):
                 reader = csv.DictReader(f)
                 rows = list(reader)
 
-                # Get the "Aggregated" row (last row)
                 if rows:
                     agg_row = rows[-1]
                     stats = {
@@ -77,20 +76,19 @@ async def run_load_test(request: LoadTestRequest):
                         "min_response_time": float(agg_row.get("Min Response Time", 0)),
                         "max_response_time": float(agg_row.get("Max Response Time", 0))
                     }
-
         except Exception as e:
             csv_error = str(e)
 
         return {
             "status": "completed",
             "csv_error": csv_error,
-            "locust_stdout": result.stdout,  # Full output
-            "locust_stderr": result.stderr,   # And stderr
-            "return_code": result.returncode,
+            "locust_stdout": stdout.decode() if stdout else "",
+            "locust_stderr": stderr.decode() if stderr else "",
+            "return_code": process.returncode,
             **stats
         }
-    
-    except subprocess.TimeoutExpired:
+
+    except asyncio.TimeoutError:
         return {"status": "timeout", "message": "Load test timed out"}
     except Exception as e:
         return {"status": "error", "message": str(e)}
