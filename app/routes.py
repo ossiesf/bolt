@@ -1,52 +1,48 @@
-from app.database import SessionLocal, URLMapping
+from app.database import SessionLocal, Session, URLMapping
+
+# Defining this outside the class so it can be imported via app.routes
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
 
 class Routes:
 
-    def save(self, short_code: str, url: str):
-        session = SessionLocal()
+    def save(self, short_code: str, url: str, db: Session):
         try:
             url_mapping = URLMapping(short_code=short_code, original_url=url)
-            session.add(url_mapping)
-            session.commit()
+            db.add(url_mapping)
+            db.commit()
         except Exception as e:
-            session.rollback()
+            db.rollback()
             raise e
-        finally:
-            session.close()
 
-    def get(self, short_code: str):
-        session = SessionLocal()
+    def get(self, short_code: str, db: Session):
         try:
-            mapping = session.query(URLMapping).filter(URLMapping.short_code == short_code).first()
+            mapping = db.query(URLMapping).filter(URLMapping.short_code == short_code).first()
             return mapping.original_url if mapping else None
         except Exception as e:
-            session.rollback()
+            db.rollback()
             raise e
-        finally:
-            session.close()
 
-    def delete(self, short_code: str):
-        session = SessionLocal()
+    def delete(self, short_code: str, db: Session):
         try:
-            mapping = session.query(URLMapping).filter(URLMapping.short_code == short_code).first()
+            mapping = db.query(URLMapping).filter(URLMapping.short_code == short_code).first()
             if mapping:
-                session.delete(mapping)
-                session.commit()
+                db.delete(mapping)
+                db.commit()
                 return True
             return False
         except Exception as e:
-            session.rollback()
+            db.rollback()
             raise e
-        finally:
-            session.close()
 
-    def exists(self, short_code: str):
-        session = SessionLocal()
+    def exists(self, short_code: str, db: Session):
         try:
-            mapping = session.query(URLMapping).filter(short_code == short_code).first()
+            mapping = db.query(URLMapping).filter(URLMapping.short_code == short_code).first()
             return mapping is not None
         except Exception as e:
-            session.rollback()
+            db.rollback()
             raise e
-        finally:
-            session.close()

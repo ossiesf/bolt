@@ -1,15 +1,15 @@
-from fastapi import FastAPI, HTTPException
-from fastapi.responses import RedirectResponse, FileResponse
-from fastapi.staticfiles import StaticFiles
-
-from app.routes import Routes
-from app.shortener import create_short_code
-from app.models import ShortenRequest, ShortenResponse
-
-import csv
 import asyncio
+import csv
 
+from fastapi import Depends, FastAPI, HTTPException
+from fastapi.responses import FileResponse, RedirectResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
+
+from app.database import Base, Session, engine
+from app.models import ShortenRequest, ShortenResponse
+from app.routes import Routes, get_db
+from app.shortener import create_short_code
 
 
 routes = Routes()
@@ -17,6 +17,11 @@ app = FastAPI()
 
 app.mount("/static", StaticFiles(directory="web"), name="static")
 
+@app.on_event("startup")
+def startup():
+    # Create tables
+    Base.metadata.create_all(bind=engine)
+    
 # Serve the web UI at root
 @app.get("/")
 async def read_root():
@@ -94,9 +99,9 @@ async def run_load_test(request: LoadTestRequest):
         return {"status": "error", "message": str(e)}
     
 @app.get("/get/{short_code}")
-async def redirect(short_code: str):
+async def redirect(short_code: str, db: Session = Depends(get_db)):
     try:
-        original_url = routes.get(short_code)
+        original_url = routes.get(short_code, db)
         if not original_url:
             raise HTTPException(status_code=404, detail=f"Mapping not found - have you shortened this URL yet?")
         return RedirectResponse(url=original_url, status_code=302)
@@ -106,10 +111,10 @@ async def redirect(short_code: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/shorten", response_model=ShortenResponse)
-async def shorten_request(request: ShortenRequest):
+async def shorten_request(request: ShortenRequest, db: Session = Depends(get_db)):
     if not request.url.startswith(("http://", "https://")):
         request.url = "http://" + request.url
     short_code = create_short_code()
     short_url = "https://improved-system-9q56x4x6vpf7p94-8000.app.github.dev/get/" + short_code
-    routes.save(short_code, request.url)
+    routes.save(short_code, request.url, db)
     return {"short_code": short_code, "short_url": short_url}

@@ -1,55 +1,50 @@
-from fastapi.testclient import TestClient
-from app.main import app
-
-client = TestClient(app)
-
-def test_shorten():
+def test_shorten(client):
     response = client.post('/shorten', json={'url': 'https://google.com'})
     assert response.status_code == 200
     data = response.json()
     assert 'short_code' in data
     assert 'short_url' in data
 
-def test_redirect():
+def test_redirect(client):
     # First, shorten a URL to get a short code
     shorten_response = client.post('/shorten', json={'url': 'https://google.com'})
     short_code = shorten_response.json()['short_code']
 
     # Now, test the redirect
-    redirect_response = client.get(f'/{short_code}', follow_redirects=False)
+    redirect_response = client.get(f'/get/{short_code}', follow_redirects=False)
     assert redirect_response.status_code == 302
     assert redirect_response.headers['location'] == 'https://google.com'
 
-def test_redirect_not_found():
-    response = client.get('/nonexistentcode', follow_redirects=False)
+def test_redirect_not_found(client):
+    response = client.get('/get/nonexistentcode', follow_redirects=False)
     assert response.status_code == 404
     data = response.json()
     assert data['detail'] == "Mapping not found - have you shortened this URL yet?"
 
-def test_shorten_and_redirect():
+def test_shorten_and_redirect(client):
     url_to_shorten = 'https://example.com'
     shorten_response = client.post('/shorten', json={'url': url_to_shorten})
     short_code = shorten_response.json()['short_code']
 
-    redirect_response = client.get(f'/{short_code}', follow_redirects=False)
+    redirect_response = client.get(f'/get/{short_code}', follow_redirects=False)
     assert redirect_response.status_code == 302
     assert redirect_response.headers['location'] == url_to_shorten 
 
-def test_shorten_invalid_url():
+def test_shorten_invalid_url(client):
     response = client.post('/shorten', json={'url': 'not-a-valid-url'})
     assert response.status_code == 200  # Assuming the app does not validate URL format
     data = response.json()
     assert 'short_code' in data
     assert 'short_url' in data
 
-def test_shorten_empty_url():
+def test_shorten_empty_url(client):
     response = client.post('/shorten', json={'url': ''})
     assert response.status_code == 200  # Assuming the app does not validate empty URL
     data = response.json()
     assert 'short_code' in data
     assert 'short_url' in data
 
-def test_multiple_shortens():
+def test_multiple_shortens(client):
     urls = ['https://site1.com', 'https://site2.com', 'https://site3.com']
     short_codes = set()
 
@@ -63,7 +58,7 @@ def test_multiple_shortens():
 
     assert len(short_codes) == len(urls)  # Ensure all short codes are unique
 
-def test_redirect_after_multiple_shortens():
+def test_redirect_after_multiple_shortens(client):
     urls = ['https://siteA.com', 'https://siteB.com', 'https://siteC.com']
     short_code_map = {}
 
@@ -73,11 +68,11 @@ def test_redirect_after_multiple_shortens():
         short_code_map[data['short_code']] = url
 
     for short_code, original_url in short_code_map.items():
-        redirect_response = client.get(f'/{short_code}', follow_redirects=False)
+        redirect_response = client.get(f'/get/{short_code}', follow_redirects=False)
         assert redirect_response.status_code == 302
         assert redirect_response.headers['location'] == original_url
 
-def test_shorten_large_url():
+def test_shorten_large_url(client):
     large_url = 'https://example.com/' + 'a' * 5000  # Very long URL
     response = client.post('/shorten', json={'url': large_url})
     assert response.status_code == 200
@@ -85,16 +80,16 @@ def test_shorten_large_url():
     assert 'short_code' in data
     assert 'short_url' in data
 
-def test_redirect_special_characters():
+def test_redirect_special_characters(client):
     special_url = 'https://example.com/?q=hello world&lang=en#section'
     shorten_response = client.post('/shorten', json={'url': special_url})
     short_code = shorten_response.json()['short_code']
 
-    redirect_response = client.get(f'/{short_code}', follow_redirects=False)
+    redirect_response = client.get(f'/get/{short_code}', follow_redirects=False)
     assert redirect_response.status_code == 302
     assert redirect_response.headers['location'] == 'https://example.com/?q=hello%20world&lang=en#section'
 
-def test_shorten_duplicate_url():
+def test_shorten_duplicate_url(client):
     url = 'https://duplicate.com'
     first_response = client.post('/shorten', json={'url': url})
     second_response = client.post('/shorten', json={'url': url})
@@ -115,22 +110,22 @@ def test_shorten_duplicate_url():
     assert first_data['short_code'] != ''
     assert second_data['short_code'] != ''
 
-def test_redirect_case_sensitivity():
+def test_redirect_case_sensitivity(client):
     url = 'https://caseSeNsitive.com'
     shorten_response = client.post('/shorten', json={'url': url})
     short_code = shorten_response.json()['short_code']
 
     # Test with original case
-    redirect_response = client.get(f'/{short_code}', follow_redirects=False)
+    redirect_response = client.get(f'/get/{short_code}', follow_redirects=False)
     assert redirect_response.status_code == 302
     assert redirect_response.headers['location'] == url
 
     # Test with different case
     altered_code = short_code.upper() if short_code.islower() else short_code.lower()
-    redirect_response_case = client.get(f'/{altered_code}', follow_redirects=False)
+    redirect_response_case = client.get(f'/get/{altered_code}', follow_redirects=False)
     assert redirect_response_case.status_code == 404
 
-def test_shorten_invalid_url_format():
+def test_shorten_invalid_url_format(client):
     response = client.post('/shorten', json={'url': 'ht!tp://invalid-url'})
     assert response.status_code == 200  # Assuming the app does not validate URL format
     data = response.json()
