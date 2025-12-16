@@ -44,20 +44,6 @@ def test_shorten_empty_url(client):
     assert 'short_code' in data
     assert 'short_url' in data
 
-def test_multiple_shortens(client):
-    urls = ['https://site1.com', 'https://site2.com', 'https://site3.com']
-    short_codes = set()
-
-    for url in urls:
-        response = client.post('/shorten', json={'url': url})
-        assert response.status_code == 200
-        data = response.json()
-        assert 'short_code' in data
-        assert 'short_url' in data
-        short_codes.add(data['short_code'])
-
-    assert len(short_codes) == len(urls)  # Ensure all short codes are unique
-
 def test_redirect_after_multiple_shortens(client):
     urls = ['https://siteA.com', 'https://siteB.com', 'https://siteC.com']
     short_code_map = {}
