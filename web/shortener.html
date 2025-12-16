@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bolt - URL Shortener</title>
+    <style>
+    body {
+        font-family: Arial, sans-serif;
+        max-width: 600px;
+        margin: 50px auto;
+        padding: 20px;
+        text-align: center;
+        background-color: #1a1a2e;
+        color: #eee;
+    }
+    
+    h1 {
+        color: #c8b6ff;
+        margin-bottom: 10px;
+    }
+    
+    #shortener {
+        margin: 30px 0;
+    }
+    
+    #urlInput {
+        width: 70%;
+        padding: 12px;
+        font-size: 16px;
+        background-color: #16213e;
+        color: #eee;
+        border: 2px solid #0f3460;
+        border-radius: 4px;
+    }
+    
+    #urlInput:focus {
+        outline: none;
+        border-color: #c8b6ff;
+    }
+    
+    #shortenBtn {
+        padding: 12px 24px;
+        font-size: 16px;
+        background-color: #c8b6ff;
+        color: #1a1a2e;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        margin-left: 10px;
+        font-weight: bold;
+    }
+    
+    #shortenBtn:hover {
+        background-color: #9d6fd8;
+    }
+    
+    #result {
+        margin-top: 20px;
+    }
+    
+    #result a {
+        color: #c8b6ff;
+        text-decoration: none;
+    }
+    
+    #result a:hover {
+        text-decoration: underline;
+    }
+    
+    #result button {
+        padding: 8px 16px;
+        margin-left: 10px;
+        background-color: #0f3460;
+        color: #c8b6ff;
+        border: 1px solid #c8b6ff;
+        border-radius: 4px;
+        cursor: pointer;
+    }
+    
+    #result button:hover {
+        background-color: #16213e;
+    }
+</style>
+</head>
+<body>
+    <h1>URL Shortener</h1>
+    
+    <div id="shortener">
+        <input type="text" id="urlInput" placeholder="Enter URL to shorten">
+        <button id="shortenBtn">Shorten</button>
+    </div>
+    
+    <div id="result"></div>
+
+    <script>
+        document.getElementById('shortenBtn').addEventListener('click', async () => {
+            const urlInput = document.getElementById('urlInput');
+            const resultDiv = document.getElementById('result');
+            const url = urlInput.value.trim();
+            
+            if (!url) {
+                resultDiv.innerHTML = '<p style="color: red;">Please enter a URL</p>';
+                return;
+            }
+            
+            try {
+                const response = await fetch('/shorten', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ url: url })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    const shortUrl = `${window.location.origin}/${data.short_code}`;
+                    resultDiv.innerHTML = `
+                        <p>Shortened URL: <a href="${shortUrl}" target="_blank">${shortUrl}</a></p>
+                        <button onclick="navigator.clipboard.writeText('${shortUrl}')">Copy</button>
+                    `;
+                    urlInput.value = ''; // Clear input
+                } else {
+                    resultDiv.innerHTML = `<p style="color: red;">Error: ${data.detail || 'Failed to shorten URL'}</p>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<p style="color: red;">Error: ${error.message}</p>`;
+            }
+});
+
+// Allow Enter key to submit
+document.getElementById('urlInput').addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') {
+        document.getElementById('shortenBtn').click();
+    }
+});
+    </script>
+</body>
+</html>
