@@ -27,4 +27,4 @@ jobs:
       env:
         TESTING: "true"
       run: |
-        pytest tests/ -v
+        pytest -m tests/ -v
