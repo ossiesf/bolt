@@ -25,6 +25,5 @@ jobs:
     
     - name: Run tests
       env:
-        TESTING: "true"
       run: |
-        pytest -m tests/ -v
+        python -m pytest tests/ -v
