@@ -1,12 +1,14 @@
 import asyncio
 import csv
 
-from fastapi import Depends, FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException, Response
 from fastapi.responses import FileResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
+from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
 
 from app.database import Base, Session, engine
+from app.middleware.metrics import MetricsMiddleware
 from app.models import ShortenRequest, ShortenResponse
 from app.routes import Routes, get_db
 from app.shortener import create_short_code
@@ -14,6 +16,7 @@ from app.shortener import create_short_code
 
 routes = Routes()
 app = FastAPI()
+app.add_middleware(MetricsMiddleware)
 
 app.mount("/static", StaticFiles(directory="web"), name="static")
 
@@ -118,3 +121,10 @@ async def shorten_request(request: ShortenRequest, db: Session = Depends(get_db)
     short_url = "https://improved-system-9q56x4x6vpf7p94-8000.app.github.dev/get/" + short_code
     routes.save(short_code, request.url, db)
     return {"short_code": short_code, "short_url": short_url}
+
+@app.get("/metrics")
+def metrics():
+    return Response(
+        content = generate_latest(),
+        media_type=CONTENT_TYPE_LATEST
+    )
