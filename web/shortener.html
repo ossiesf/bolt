@@ -116,7 +116,7 @@
                 const data = await response.json();
                 
                 if (response.ok) {
-                    const shortUrl = `${window.location.origin}/${data.short_code}`;
+                    const shortUrl = `${window.location.origin}/get/${data.short_code}`;
                     resultDiv.innerHTML = `
                         <p>Shortened URL: <a href="${shortUrl}" target="_blank">${shortUrl}</a></p>
                         <button onclick="navigator.clipboard.writeText('${shortUrl}')">Copy</button>

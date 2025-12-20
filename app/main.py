@@ -1,13 +1,14 @@
 import asyncio
 import csv
+from datetime import datetime
 
-from fastapi import Depends, FastAPI, HTTPException, Response
+from fastapi import Depends, FastAPI, HTTPException, Response, Request
 from fastapi.responses import FileResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from prometheus_client import generate_latest, make_asgi_app, CONTENT_TYPE_LATEST
 
-from app.database import Base, Session, engine
+from app.database import Base, Session, engine, Click
 from app.middleware.metrics import MetricsMiddleware
 from app.models import ShortenRequest, ShortenResponse
 from app.routes import Routes, get_db
@@ -105,12 +106,30 @@ async def run_load_test(request: LoadTestRequest):
         return {"status": "error", "message": str(e)}
     
 @app.get("/get/{short_code}")
-async def redirect(short_code: str, db: Session = Depends(get_db)):
+async def redirect(short_code: str, request: Request, db: Session = Depends(get_db)):
     try:
         original_url = routes.get(short_code, db)
         if not original_url:
             raise HTTPException(status_code=404, detail=f"Mapping not found - have you shortened this URL yet?")
+        
+        try:
+            # Track the link click or redirect
+            click = Click(
+                short_code = short_code,
+                clicked_at = datetime.utcnow(),
+                job_posting_url = request.query_params.get("job_posting_url"),
+                resume_version = request.query_params.get("resume_version"),
+                user_agent = request.headers.get("user-agent"),
+                referrer = request.headers.get("referer")
+            )
+            db.add(click)
+            db.commit()
+        except Exception as e:
+            db.rollback()
+            raise
+        
         return RedirectResponse(url=original_url, status_code=302)
+    
     except HTTPException:
         raise
     except Exception as e:
