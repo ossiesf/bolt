@@ -5,7 +5,7 @@ from fastapi import Depends, FastAPI, HTTPException, Response
 from fastapi.responses import FileResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
-from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
+from prometheus_client import generate_latest, make_asgi_app, CONTENT_TYPE_LATEST
 
 from app.database import Base, Session, engine
 from app.middleware.metrics import MetricsMiddleware
@@ -17,8 +17,11 @@ from app.shortener import create_short_code
 routes = Routes()
 app = FastAPI()
 app.add_middleware(MetricsMiddleware)
-
 app.mount("/static", StaticFiles(directory="web"), name="static")
+
+# Mount prometheus metrics endpoint
+metrics_app = make_asgi_app()
+app.mount("/metrics", metrics_app)
 
 @app.on_event("startup")
 def startup():
