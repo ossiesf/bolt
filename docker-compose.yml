@@ -4,27 +4,24 @@ services:
       - ./web:/app/web
     build: .
     ports:
-      - "80:8000"
+      - "8000:8000"
     depends_on:
       - db
-    environment:
-      - DATABASE_URL=postgresql://user:password@db:5432/bolt
+    env_file:
+      - .env
     
   db:
     image: postgres:15
-    environment:
-      - POSTGRES_USER=user
-      - POSTGRES_PASSWORD=password
-      - POSTGRES_DB=bolt
-    ports:
-      - "5432:5432"
+    env_file:
+      - .env
+    # REMOVED port exposure - only accessible within Docker network
     volumes:
       - postgres-data:/var/lib/postgresql/data
 
   prometheus:
     image: prom/prometheus:latest
     ports:
-      - "9090:9090"
+      - "127.0.0.1:9090:9090"  # Only localhost
     volumes:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml
       - prometheus-data:/prometheus
@@ -37,10 +34,9 @@ services:
   grafana:
     image: grafana/grafana:latest
     ports:
-      - "3000:3000"
-    environment:
-      - GF_SECURITY_ADMIN_PASSWORD=admin  # Temporary
-      - GF_USERS_ALLOW_SIGN_UP=false
+      - "127.0.0.1:3000:3000"  # Only localhost
+    env_file:
+      - .env
     volumes:
       - grafana-data:/var/lib/grafana
     depends_on:
