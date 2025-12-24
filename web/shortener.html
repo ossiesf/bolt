@@ -47,7 +47,7 @@
         border: none;
         border-radius: 4px;
         cursor: pointer;
-        margin-left: 10px;
+        margin-top: 15px;
         font-weight: bold;
     }
     
@@ -81,6 +81,22 @@
     #result button:hover {
         background-color: #16213e;
     }
+    
+    .nav-links {
+        margin-top: 40px;
+        padding-top: 20px;
+        border-top: 1px solid #0f3460;
+    }
+    
+    .nav-links a {
+        color: #c8b6ff;
+        text-decoration: none;
+        font-size: 14px;
+    }
+    
+    .nav-links a:hover {
+        text-decoration: underline;
+    }
 </style>
 </head>
 <body>
@@ -92,6 +108,10 @@
     </div>
     
     <div id="result"></div>
+    
+    <div class="nav-links">
+        <a href="/load-test.html">📊 View Load Testing Dashboard</a>
+    </div>
 
     <script>
         document.getElementById('shortenBtn').addEventListener('click', async () => {
@@ -128,14 +148,14 @@
             } catch (error) {
                 resultDiv.innerHTML = `<p style="color: red;">Error: ${error.message}</p>`;
             }
-});
+        });
 
-// Allow Enter key to submit
-document.getElementById('urlInput').addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') {
-        document.getElementById('shortenBtn').click();
-    }
-});
+        // Allow Enter key to submit
+        document.getElementById('urlInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                document.getElementById('shortenBtn').click();
+            }
+        });
     </script>
 </body>
 </html>
