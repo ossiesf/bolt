@@ -1,7 +1,7 @@
 ![Tests](https://github.com/ossiesf/bolt/actions/workflows/tests.yml/badge.svg)
 
 # bolt
-Fast, containerized load testing platform
+Fast, containerized load testing platform deployed at https://bolt-test.dev
 ## Overview
 
 Bolt is a dockerized load testing suite built around a URL shortener application with quick and easy deployment.
