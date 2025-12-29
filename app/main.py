@@ -29,8 +29,9 @@ def startup():
     # Create tables
     Base.metadata.create_all(bind=engine)
     
-# Serve the web UI at root
+# Serve the web UI at root and allow HEAD requests for Uptime Robot
 @app.get("/")
+@app.head("/")
 async def read_root():
     return FileResponse("web/shortener.html")
 
