@@ -1,4 +1,5 @@
 ![Tests](https://github.com/ossiesf/bolt/actions/workflows/tests.yml/badge.svg)
+[![Uptime Status](https://img.shields.io/uptimerobot/status/m802053378)](https://bolt-test.dev)
 
 # bolt
 Fast, containerized load testing platform deployed at https://bolt-test.dev
