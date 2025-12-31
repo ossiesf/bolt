@@ -21,16 +21,6 @@ app = FastAPI()
 app.add_middleware(MetricsMiddleware)
 app.mount("/static", StaticFiles(directory="web"), name="static")
 
-# Map the grafana-captures location to where the files are saved by grafana
-try:
-    os.makedirs("/app/test-results/grafana", exist_ok=True)
-    grafana_path = "/app/test-results/grafana"
-except PermissionError:
-    # Fall back to relative path for tests
-    os.makedirs("test-results/grafana", exist_ok=True)
-    grafana_path = "test-results/grafana"
-app.mount("/grafana-captures", StaticFiles(directory=grafana_path), name="grafana-captures")
-
 # Mount prometheus metrics endpoint
 metrics_app = make_asgi_app()
 app.mount("/metrics", metrics_app)
@@ -109,24 +99,18 @@ async def run_load_test(request: LoadTestRequest):
                             "max_response_time": float(agg_row.get("Max Response Time", 0))
                         }
                     
-                from app.middleware.grafana import GrafanaCapture
+                grafana_base = os.getenv("GF_BROWSER_URL", "https://improved-system-9q56x4x6vpf7p94-3000.app.github.dev")
 
-                grafana = GrafanaCapture()
-                duration_minutes = int((request.duration / 60) + 2)
+                # Calculate time range for the test that just ran
+                buffer_ms = min(60000, request.duration * 1000 // 2)
+                end_time = int(datetime.now().timestamp() * 1000)
+                start_time = end_time - (request.duration * 1000) - buffer_ms
 
-                # Capture the panels
-                panel_6 = grafana.capture_panel("main-fastapi", 6, duration_minutes)
-                panel_8 = grafana.capture_panel("main-fastapi", 8, duration_minutes)
-                panel_12 = grafana.capture_panel("main-fastapi", 12, duration_minutes)
-
-                # Add to response_data
-                if panel_6:
-                    grafana_panels["grafana_panel_6"] = f"/grafana-captures/{panel_6}"
-                if panel_8:
-                    grafana_panels["grafana_panel_8"] = f"/grafana-captures/{panel_8}"
-                if panel_12:
-                    grafana_panels["grafana_panel_12"] = f"/grafana-captures/{panel_12}"
-                print(f"Grafana panels dict: {grafana_panels}")
+                grafana_panels = {
+                    "grafana_panel_6": f"{grafana_base}/d-solo/main-fastapi?orgId=1&panelId=6&from={start_time}&to={end_time}&theme=dark",
+                    "grafana_panel_8": f"{grafana_base}/d-solo/main-fastapi?orgId=1&panelId=8&from={start_time}&to={end_time}&theme=dark",
+                    "grafana_panel_12": f"{grafana_base}/d-solo/main-fastapi?orgId=1&panelId=12&from={start_time}&to={end_time}&theme=dark"
+                }
             
             except Exception as e:
                 csv_error = str(e)
