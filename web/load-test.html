@@ -212,32 +212,53 @@
             </div>
         `;
             
-            try {
-                const response = await fetch('/api/run-load-test', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        users: parseInt(users),
-                        duration: parseInt(duration)
-                    })
-                });
-                
-                const data = await response.json();
-                
-                if (response.ok) {
-                    displayResults(data);
-                } else {
-                    resultsDiv.innerHTML = `<p style="color: #ff6b6b;">Error: ${data.detail || 'Failed to run test'}</p>`;
-                }
-            } catch (error) {
-                resultsDiv.innerHTML = `<p style="color: #ff6b6b;">Error: ${error.message}</p>`;
-            } finally {
-                runButton.disabled = false;
-                runButton.textContent = 'Run Load Test';
+        try {
+            const response = await fetch('/api/run-load-test', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    users: parseInt(users),
+                    duration: parseInt(duration)
+                })
+            });
+            
+            const data = await response.json();
+            
+            // Handle busy status
+            if (data.status === 'busy') {
+                resultsDiv.innerHTML = `
+                    <div class="metric" style="border-left-color: #ff9800;">
+                        <strong>⚠️ ${data.message}</strong>
+                    </div>
+                `;
+                return;
             }
-        });
+            
+            // Handle error status
+            if (data.status === 'error') {
+                resultsDiv.innerHTML = `
+                    <div class="metric" style="border-left-color: #ff6b6b;">
+                        <strong>❌ Error:</strong> ${data.message}
+                    </div>
+                `;
+                return;
+            }
+            
+            // Success - display results
+            if (data.status === 'completed') {
+                displayResults(data);
+            }
+            
+        } catch (error) {
+            console.error('Full error:', error);
+            resultsDiv.innerHTML = `<p style="color: #ff6b6b;">Error: ${error.message}</p>`;
+        } finally {
+            runButton.disabled = false;
+            runButton.textContent = 'Run Load Test';
+        }
+    });
 
         function cleanLocustOutput(output) {
             if (!output) return 'None';
