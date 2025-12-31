@@ -22,8 +22,14 @@ app.add_middleware(MetricsMiddleware)
 app.mount("/static", StaticFiles(directory="web"), name="static")
 
 # Map the grafana-captures location to where the files are saved by grafana
-os.makedirs("/app/test-results/grafana", exist_ok=True)
-app.mount("/grafana-captures", StaticFiles(directory="/app/test-results/grafana"), name="grafana-captures")
+try:
+    os.makedirs("/app/test-results/grafana", exist_ok=True)
+    grafana_path = "/app/test-results/grafana"
+except PermissionError:
+    # Fall back to relative path for tests
+    os.makedirs("test-results/grafana", exist_ok=True)
+    grafana_path = "test-results/grafana"
+app.mount("/grafana-captures", StaticFiles(directory=grafana_path), name="grafana-captures")
 
 # Mount prometheus metrics endpoint
 metrics_app = make_asgi_app()
