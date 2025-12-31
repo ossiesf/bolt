@@ -1,4 +1,5 @@
 ![Tests](https://github.com/ossiesf/bolt/actions/workflows/tests.yml/badge.svg)
+[![Uptime (30 days)](https://img.shields.io/uptimerobot/ratio/30/m802053378-ed4fbf465d58e6a076efc7d0?label=Uptime)](https://bolt-test.dev)
 
 # bolt
 Fast, containerized load testing platform deployed at https://bolt-test.dev
