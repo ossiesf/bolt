@@ -1,5 +1,6 @@
 import asyncio
 import csv
+import os
 from datetime import datetime
 
 from fastapi import Depends, FastAPI, HTTPException, Response, Request
@@ -19,6 +20,10 @@ routes = Routes()
 app = FastAPI()
 app.add_middleware(MetricsMiddleware)
 app.mount("/static", StaticFiles(directory="web"), name="static")
+
+# Map the grafana-captures location to where the files are saved by grafana
+os.makedirs("/app/test-results/grafana", exist_ok=True)
+app.mount("/grafana-captures", StaticFiles(directory="/app/test-results/grafana"), name="grafana-captures")
 
 # Mount prometheus metrics endpoint
 metrics_app = make_asgi_app()
@@ -71,9 +76,11 @@ async def run_load_test(request: LoadTestRequest):
         stdout, stderr = await process.communicate()
         await asyncio.sleep(2)
 
-        # Parse CSV...
+        # try: Parse CSV and capture panels
         stats = {}
         csv_error = None
+        grafana_panels = {}
+
         try:
             with open("/app/locust_stats_stats.csv", "r") as f:
                 reader = csv.DictReader(f)
@@ -89,6 +96,26 @@ async def run_load_test(request: LoadTestRequest):
                         "min_response_time": float(agg_row.get("Min Response Time", 0)),
                         "max_response_time": float(agg_row.get("Max Response Time", 0))
                     }
+                
+            from app.middleware.grafana import GrafanaCapture
+
+            grafana = GrafanaCapture()
+            duration_minutes = int((request.duration / 60) + 2)
+
+            # Capture the panels
+            panel_6 = grafana.capture_panel("main-fastapi", 6, duration_minutes)
+            panel_8 = grafana.capture_panel("main-fastapi", 8, duration_minutes)
+            panel_12 = grafana.capture_panel("main-fastapi", 12, duration_minutes)
+
+            # Add to response_data
+            if panel_6:
+                grafana_panels["grafana_panel_6"] = f"/grafana-captures/{panel_6}"
+            if panel_8:
+                grafana_panels["grafana_panel_8"] = f"/grafana-captures/{panel_8}"
+            if panel_12:
+                grafana_panels["grafana_panel_12"] = f"/grafana-captures/{panel_12}"
+            print(f"Grafana panels dict: {grafana_panels}")
+        
         except Exception as e:
             csv_error = str(e)
 
@@ -98,7 +125,8 @@ async def run_load_test(request: LoadTestRequest):
             "locust_stdout": stdout.decode() if stdout else "",
             "locust_stderr": stderr.decode() if stderr else "",
             "return_code": process.returncode,
-            **stats
+            **stats,
+            **grafana_panels
         }
 
     except asyncio.TimeoutError:
